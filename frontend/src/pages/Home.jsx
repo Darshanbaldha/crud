@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MdAdd, MdEdit, MdDelete } from "react-icons/md";
+import API from "../../services/api";
 
 export default function Home() {
 
@@ -14,7 +15,16 @@ export default function Home() {
     // console.log("3." + text.trim());
     // console.log("2." + text.trim().length);
 
-    const handleSubmit = (e) => {
+    useEffect(() => {
+        fetchItem();
+    }, [])
+
+    const fetchItem = async () => {
+        const res = await API.get("/items")
+        setItems(res.data);
+    }
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
         console.log("1. " + text);
 
@@ -22,34 +32,25 @@ export default function Home() {
         if (!text.trim) { return; }
 
         // checks if item in update mode or not.
-        if (editIndex !== null) {
-            const updateItems = [...items];
-            // console.log("2. " + [updateItems]);
-            // console.log("4. " + [editIndex]);
-            updateItems[editIndex] = text;
-            // console.log("3. " + text);
-            setItems(updateItems);
-            // console.log("5. " + [...items]);
+        if (editIndex) {
+            await API.put(`/items/${editIndex}`, {text})
             setEditIndex(null);
         } else {
-            setItems([...items, text]);
+            await API.get("/items", {text})
         }
 
         setText("")
+        fetchItem();
     }
 
-    const handleEdit = (index) => {
-        setText(items[index]);
-        setEditIndex(index);
+    const handleEdit = (items) => {
+        setText(items.text);
+        setEditIndex(items._id);
     }
 
-    const handledelet = (index) => {
-        setItems(items.filter((_, i) => i !== index))
-
-        if (editIndex === index) {
-            setText("");
-            setEditIndex(null)
-        }
+    const handledelet = async (id) => {
+        await API.delet(`/items/${id}`);
+        fetchItem();
     }
 
     return (
@@ -63,11 +64,11 @@ export default function Home() {
                 </form>
 
                 <div className="flex flex-col items-center justify-center my-10 ">
-                    {items.map((item, index) => {
-                        <div key={index} className="flex items-center justify-between space-x-4 p-2 px-100 w-full">
+                    {items.map((item) => {
+                        <div key={items._id} className="flex items-center justify-between space-x-4 p-2 px-100 w-full">
                             <p className="flex-1 basis-[96%]">{item}</p>
-                            <button onClick={() => handleEdit(index)} className="text-4xl p-4 hover:border border-sky-500 hover:outline-2 outline-sky-500 hover:rounded-md flex-none basis-[2%]"><MdEdit className="fill-sky-500" /></button>
-                            <button onClick={() => handledelet(index)} className="text-4xl p-4 hover:border border-red-500 hover:outline-2 outline-red-500 hover:rounded-md flex-none basis-[2%]"><MdDelete className="fill-red-500" /></button>
+                            <button onClick={() => handleEdit(item)} className="text-4xl p-4 hover:border border-sky-500 hover:outline-2 outline-sky-500 hover:rounded-md flex-none basis-[2%]"><MdEdit className="fill-sky-500" /></button>
+                            <button onClick={() => handledelet(item._id)} className="text-4xl p-4 hover:border border-red-500 hover:outline-2 outline-red-500 hover:rounded-md flex-none basis-[2%]"><MdDelete className="fill-red-500" /></button>
                         </div>
                     })}
                 </div>
